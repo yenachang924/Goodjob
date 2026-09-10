@@ -1,3 +1,40 @@
+.auth-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.auth-panel {
+  width: min(100%, 440px);
+}
+.auth-panel h1 {
+  font-size: 28px;
+  margin-bottom: 24px;
+}
+.auth-panel p {
+  line-height: 1.7;
+}
+.account-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 8px 24px;
+  font-size: 14px;
+}
+.backup-controls {
+  margin: 24px 0 72px;
+  max-width: 560px;
+  font-size: 14px;
+}
+.backup-controls summary {
+  cursor: pointer;
+  padding: 12px 0;
+}
+.backup-controls p {
+  margin: 12px 0;
+  line-height: 1.6;
+}
 :root {
   --background: #f1f4f8;
   --foreground: #202c3e;

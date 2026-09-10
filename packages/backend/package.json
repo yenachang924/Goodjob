@@ -1,0 +1,13 @@
+{
+  "name": "@cockpit/backend",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@cockpit/shared": "*",
+    "@supabase/supabase-js": "2.116.0",
+    "server-only": "0.0.1"
+  }
+}

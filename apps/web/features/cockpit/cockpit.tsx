@@ -1,5 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { workspaceRequest } from '@/features/auth/client';
+import { BackupControls } from './backup-controls';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -32,7 +34,7 @@ import {
   type Day,
   type Slot,
   type Task,
-} from '@/lib/planner';
+} from '@cockpit/shared';
 const today = () =>
   new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(
     new Date(),
@@ -69,7 +71,7 @@ export default function Page() {
     over = planned + buffer > capacity;
   const pending = data.tasks.filter((t) => !t.done);
   useEffect(() => {
-    fetch('/api/workspace')
+    workspaceRequest()
       .then(async (response) => {
         const r = (await response.json()) as {
           data: unknown;
@@ -113,7 +115,7 @@ export default function Page() {
     setBusy(true);
     setError('');
     try {
-      const response = await fetch('/api/workspace', {
+      const response = await workspaceRequest({
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: next, revision }),
@@ -552,6 +554,14 @@ export default function Page() {
             </div>
           </fieldset>
         </>
+      )}
+      {ready && (
+        <BackupControls
+          data={data}
+          revision={revision}
+          disabled={busy}
+          onImport={save}
+        />
       )}
       <Button className="chat-launcher" onClick={() => setChat(true)}>
         <MessageSquare size={17} /> 작업 도우미
