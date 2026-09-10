@@ -69,8 +69,6 @@ export default function Page() {
     over = planned + buffer > capacity;
   const pending = data.tasks.filter((t) => !t.done);
   useEffect(() => {
-    setDate(today());
-    setTick(Date.now());
     fetch('/api/workspace')
       .then(async (response) => {
         const r = (await response.json()) as {
@@ -81,6 +79,8 @@ export default function Page() {
         if (!response.ok || !validData(r.data))
           throw new Error(r.error || '데이터를 확인할 수 없습니다.');
         setData(r.data);
+        setDate(today());
+        setTick(Date.now());
         setRevision(r.revision);
         const d = r.data.days[today()] || defaultDay();
         setCapacity(d.capacity);
@@ -93,13 +93,16 @@ export default function Page() {
   }, []);
   useEffect(() => {
     if (!date || today() === date || busy) return;
-    const next = today();
-    const nextDay = data.days[next] || defaultDay();
-    setDate(next);
-    setCapacity(nextDay.capacity);
-    setBuffer(nextDay.buffer);
-    setDraft(null);
-    setNotice('날짜가 바뀌어 오늘의 계획으로 전환했습니다.');
+    const timer = setTimeout(() => {
+      const next = today();
+      const nextDay = data.days[next] || defaultDay();
+      setDate(next);
+      setCapacity(nextDay.capacity);
+      setBuffer(nextDay.buffer);
+      setDraft(null);
+      setNotice('날짜가 바뀌어 오늘의 계획으로 전환했습니다.');
+    }, 0);
+    return () => clearTimeout(timer);
   }, [tick, date, busy, data.days]);
   async function save(next: Data) {
     if (busy || !ready) return false;
@@ -172,7 +175,7 @@ export default function Page() {
       ),
     );
   }
-  async function submitTask(event: React.FormEvent) {
+  async function submitTask(event: React.SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     const next = {
       ...task,
@@ -378,9 +381,10 @@ export default function Page() {
                   </span>
                 </div>
                 <div className="time-inputs">
-                  <label>
+                  <label htmlFor="capacity">
                     가용시간 · 분
                     <Input
+                      id="capacity"
                       type="number"
                       min={0}
                       max={1440}
@@ -391,9 +395,10 @@ export default function Page() {
                       }}
                     />
                   </label>
-                  <label>
+                  <label htmlFor="buffer">
                     완충시간 · 분
                     <Input
+                      id="buffer"
                       type="number"
                       min={0}
                       max={capacity}
@@ -421,8 +426,9 @@ export default function Page() {
                       <strong>{s.project}</strong>
                       <p>{s.title}</p>
                       <div className="slot-actions">
-                        <label className="minutes">
+                        <label className="minutes" htmlFor={`slot-${s.taskId}`}>
                           <Input
+                            id={`slot-${s.taskId}`}
                             type="number"
                             aria-label={`${s.title} 배치 시간`}
                             min={1}
@@ -588,9 +594,10 @@ export default function Page() {
             </SheetDescription>
           </SheetHeader>
           <form className="task-form" onSubmit={submitTask}>
-            <label>
+            <label htmlFor="task-project">
               프로젝트
               <Input
+                id="task-project"
                 required
                 list="projects"
                 maxLength={100}
@@ -599,23 +606,26 @@ export default function Page() {
               />
               <datalist id="projects">
                 {data.projects.map((p) => (
-                  <option key={p} value={p} />
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
                 ))}
               </datalist>
             </label>
-            <label>
+            <label htmlFor="task-title">
               해야 할 일
               <Input
-                autoFocus
+                id="task-title"
                 required
                 maxLength={300}
                 value={task.title}
                 onChange={(e) => setTask({ ...task, title: e.target.value })}
               />
             </label>
-            <label>
+            <label htmlFor="task-minutes">
               예상 시간 · 분
               <Input
+                id="task-minutes"
                 required
                 type="number"
                 min={1}
@@ -626,9 +636,10 @@ export default function Page() {
                 }
               />
             </label>
-            <label>
+            <label htmlFor="task-priority">
               중요도 · 1 필수 / 2 중요 / 3 여유
               <Input
+                id="task-priority"
                 required
                 type="number"
                 min={1}
@@ -639,9 +650,10 @@ export default function Page() {
                 }
               />
             </label>
-            <label>
+            <label htmlFor="task-due">
               마감일 · 선택
               <Input
+                id="task-due"
                 type="date"
                 value={task.due}
                 onChange={(e) => setTask({ ...task, due: e.target.value })}
