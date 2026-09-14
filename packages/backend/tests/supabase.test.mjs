@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { createDependencies } from '../src/supabase.ts';
 import { initialData } from '@cockpit/shared';
+import { migrateWorkspace } from '@cockpit/shared/control';
 
 test('real Supabase SDK forwards bearer and validates provider responses', async () => {
   let reply = { status: 200, body: null };
@@ -45,6 +46,17 @@ test('real Supabase SDK forwards bearer and validates provider responses', async
     assert.equal(seen.headers.authorization, 'Bearer test-token');
     reply = { status: 200, body: { data: initialData, revision: 2 } };
     assert.equal((await deps.repository.read('owner')).revision, 2);
+    const upgraded = migrateWorkspace(initialData);
+    reply = { status: 200, body: { data: upgraded, revision: 3 } };
+    assert.deepEqual(await deps.repository.read('owner'), {
+      data: upgraded,
+      revision: 3,
+    });
+    reply = {
+      status: 200,
+      body: { data: { ...upgraded, version: 3 }, revision: 3 },
+    };
+    await assert.rejects(deps.repository.read('owner'), /Invalid stored/);
     reply = { status: 200, body: { data: {}, revision: 2 } };
     await assert.rejects(deps.repository.read('owner'), /Invalid stored/);
     reply = { status: 200, body: 3 };

@@ -1,0 +1,146 @@
+.learning-shell {
+  max-width: 1120px;
+  margin: auto;
+  padding: 28px 24px 48px;
+}
+.learning-header,
+.learning-toolbar,
+.learning-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.learning-header {
+  font-size: 12px;
+  color: #63706c;
+}
+.learning-header a {
+  text-decoration: underline;
+}
+.learning-heading {
+  margin: 40px 0 24px;
+}
+.learning-heading h1 {
+  font-size: clamp(28px, 5vw, 40px);
+  line-height: 1.25;
+  margin: 10px 0 12px;
+}
+.learning-heading p,
+.learning-login p,
+.learning-footer {
+  color: #63706c;
+  line-height: 1.7;
+}
+.learning-boundary {
+  padding: 16px 20px;
+  border: 1px solid #d6e5dc;
+  background: #f0f7f2;
+  border-radius: 12px;
+  line-height: 1.6;
+}
+.learning-login {
+  max-width: 480px;
+  margin: 32px auto;
+}
+.learning-login small {
+  display: block;
+  line-height: 1.6;
+  color: #63706c;
+  margin-top: 20px;
+}
+.learning-toolbar {
+  margin: 24px 0 16px;
+}
+.learning-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.learning-grid > *,
+.learning-input-row > * {
+  min-width: 0;
+}
+.learning-fields {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.learning-fields label {
+  display: grid;
+  gap: 8px;
+}
+.learning-input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.learning-fields select {
+  min-height: 36px;
+  border: 1px solid #d3dcd6;
+  border-radius: 6px;
+  padding: 6px;
+  background: white;
+  width: 100%;
+}
+.learning-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.learning-task {
+  padding: 20px 0;
+  border-bottom: 1px solid #e7ece8;
+  display: grid;
+  gap: 14px;
+  overflow-wrap: anywhere;
+}
+.learning-task h3 {
+  font-size: 17px;
+  margin: 6px 0;
+}
+.learning-task p,
+.learning-task small {
+  color: #63706c;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.learning-task .done {
+  text-decoration: line-through;
+  color: #63706c;
+}
+.learning-pagination {
+  margin-top: 24px;
+  font-size: 13px;
+}
+.learning-error {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #fff0eb;
+  color: #8a3827;
+  margin: 20px 0;
+  overflow-wrap: anywhere;
+}
+.learning-footer {
+  font-size: 12px;
+  margin-top: 32px;
+}
+@media (max-width: 720px) {
+  .learning-shell {
+    padding: 20px 16px 32px;
+  }
+  .learning-grid {
+    grid-template-columns: 1fr;
+  }
+  .learning-header {
+    flex-wrap: wrap;
+  }
+}

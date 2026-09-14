@@ -1,0 +1,183 @@
+openapi: 3.0.3
+info:
+  title: Goodjob learning task API
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1:8080
+security:
+  - basicAuth: []
+paths:
+  /api/v1/tasks:
+    get:
+      parameters:
+        - {
+            name: page,
+            in: query,
+            schema: { type: integer, minimum: 0, maximum: 10000, default: 0 },
+          }
+        - {
+            name: size,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 100, default: 20 },
+          }
+      responses:
+        '200':
+          {
+            description: Stable task page,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/TaskPage' } },
+              },
+          }
+        '401': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+    post:
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/TaskInput' } },
+            },
+        }
+      responses:
+        '201':
+          {
+            description: Created,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/TaskResponse' } },
+              },
+          }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '413': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/v1/tasks/{id}:
+    put:
+      parameters:
+        - {
+            name: id,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/TaskUpdate' } },
+            },
+        }
+      responses:
+        '200':
+          {
+            description: Updated,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/TaskResponse' } },
+              },
+          }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '413': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    basicAuth: { type: http, scheme: basic }
+  responses:
+    Error:
+      {
+        description: Error envelope,
+        content:
+          {
+            application/json:
+              { schema: { $ref: '#/components/schemas/ApiError' } },
+          },
+      }
+  schemas:
+    TaskInput:
+      type: object
+      additionalProperties: false
+      required: [project, title, minutes, priority, done, due]
+      properties:
+        project: { type: string, minLength: 1, maxLength: 100 }
+        title: { type: string, minLength: 1, maxLength: 300 }
+        minutes: { type: integer, minimum: 1, maximum: 1440 }
+        priority: { type: integer, minimum: 1, maximum: 3 }
+        done: { type: boolean }
+        due: { type: string, description: Empty string or ISO local date }
+    TaskUpdate:
+      type: object
+      additionalProperties: false
+      required: [project, title, minutes, priority, done, due, revision]
+      properties:
+        project: { type: string, minLength: 1, maxLength: 100 }
+        title: { type: string, minLength: 1, maxLength: 300 }
+        minutes: { type: integer, minimum: 1, maximum: 1440 }
+        priority: { type: integer, minimum: 1, maximum: 3 }
+        done: { type: boolean }
+        due: { type: string, description: Empty string or ISO local date }
+        revision: { type: integer, minimum: 1, maximum: 2147483646 }
+    Task:
+      type: object
+      additionalProperties: false
+      required: [id, project, title, minutes, priority, done, due, revision]
+      properties:
+        id: { type: string, format: uuid }
+        project: { type: string, minLength: 1, maxLength: 100 }
+        title: { type: string, minLength: 1, maxLength: 300 }
+        minutes: { type: integer, minimum: 1, maximum: 1440 }
+        priority: { type: integer, minimum: 1, maximum: 3 }
+        done: { type: boolean }
+        due: { type: string, description: Empty string or ISO local date }
+        revision: { type: integer, minimum: 1 }
+    TaskResponse:
+      type: object
+      required: [success, data]
+      properties:
+        {
+          success: { type: boolean, enum: [true] },
+          data: { $ref: '#/components/schemas/Task' },
+        }
+    TaskPage:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { type: array, items: { $ref: '#/components/schemas/Task' } }
+        meta:
+          {
+            type: object,
+            required: [total, page, limit],
+            properties:
+              {
+                total: { type: integer },
+                page: { type: integer },
+                limit: { type: integer },
+              },
+          }
+    ApiError:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          {
+            type: object,
+            required: [code, message],
+            properties: { code: { type: string }, message: { type: string } },
+          }

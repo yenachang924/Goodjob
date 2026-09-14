@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
+import { migrateWorkspace } from '@cockpit/shared/control';
 const owner = '11111111-1111-4111-8111-111111111111';
 const other = '22222222-2222-4222-8222-222222222222';
 test('Postgres RLS, atomic revision checks and persistent limiter', async () => {
@@ -49,6 +50,21 @@ test('Postgres RLS, atomic revision checks and persistent limiter', async () => 
       (await db.query('select data from public.cockpit_workspaces')).rows[0]
         .data,
       data,
+    );
+    const upgraded = migrateWorkspace(data);
+    const saveV2 = async (revision) =>
+      (
+        await db.query(
+          'select public.save_cockpit_workspace($1::jsonb,$2) as revision',
+          [JSON.stringify(upgraded), revision],
+        )
+      ).rows[0].revision;
+    assert.equal(await saveV2(2), 3);
+    assert.equal(await saveV2(2), null);
+    assert.deepEqual(
+      (await db.query('select data from public.cockpit_workspaces')).rows[0]
+        .data,
+      upgraded,
     );
     assert.equal(
       (await db.query('select public.consume_cockpit_request() as allowed'))

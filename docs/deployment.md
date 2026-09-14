@@ -6,7 +6,7 @@ Vercel 프로젝트, 전용 Supabase 프로젝트, Git 저장소 연결이 필�
 
 ## 1. Supabase 설정
 
-1. 전용 프로젝트를 선택합니다. 기존 다른 앱 DB에 이 SQL을 무작정 실행하지 않습니다.
+1. [Supabase Dashboard](https://supabase.com/dashboard)에서 새 전용 프로젝트를 만듭니다. 이름은 `goodjob`처럼 구분하기 쉽게 정하고 DB 비밀번호는 비밀번호 관리자에 보관합니다. 유료 전환은 필요 여부를 확인한 뒤 직접 결정하세요. 기존 다른 앱 DB에 이 SQL을 무작정 실행하지 않습니다.
 2. SQL Editor에서 `packages/backend/migrations/001_cockpit.sql`을 한 번 실행합니다. 파괴적 삭제가 없는 초기 마이그레이션입니다. 재실행용 SQL이 아닙니다.
 3. Auth 설정에서 공개 가입을 끄고, Auth Users에서 자신의 이메일/비밀번호 계정을 생성·확인합니다. 비밀번호는 Supabase UI에서만 입력합니다.
 4. 생성된 실제 사용자 UUID를 다음 SQL의 문자열에 넣어 허용합니다.
@@ -15,7 +15,22 @@ Vercel 프로젝트, 전용 Supabase 프로젝트, Git 저장소 연결이 필�
 insert into public.cockpit_owners(user_id) values ('실제-Supabase-사용자-UUID');
 ```
 
-5. 프로젝트 URL과 Publishable key를 가져옵니다. service_role/secret key는 앱에 필요하지 않습니다.
+5. 프로젝트의 **Connect** 또는 **Settings → API Keys**에서 프로젝트 URL과 Publishable key를 확인합니다. service_role/secret key는 앱에 필요하지 않습니다. [공식 키 안내](https://supabase.com/docs/guides/getting-started/api-keys)
+
+### 먼저 로컬에서 연결하기
+
+`apps/web/.env.example`을 참고해 `apps/web/.env.local`에 아래 값을 직접 넣습니다. 비밀번호·비밀 키는 채팅에 보내지 마세요. 소유자 UUID는 위 Auth Users에서 만든 사용자의 ID이며 프로젝트 ID가 아닙니다.
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
+COCKPIT_OWNER_ID=YOUR_AUTH_USER_UUID
+COCKPIT_WEB_ORIGIN=http://127.0.0.1:3000
+```
+
+저장소 루트에서 `npm run dev --workspace @cockpit/web -- --port 3000`을 실행하고 `http://127.0.0.1:3000`으로 접속합니다. 포트를 바꾸면 `COCKPIT_WEB_ORIGIN`도 같은 주소로 바꾸고 서버를 재시작하세요. 설정 없이 나오는 안내 화면은 정상이며, 테스트용 로그인이나 임시 DB가 실사용 저장소를 대신하지 않습니다.
+
+로그인 → 새 워크스페이스 시작 → 프로젝트/작업 등록 → 새로고침 후 유지되는지 확인합니다. 기존 데이터가 있다면 새로 시작하기 전에 원본 백업을 준비하세요.
 
 ## 2. Vercel 프로젝트 하나
 
@@ -32,6 +47,7 @@ insert into public.cockpit_owners(user_id) values ('실제-Supabase-사용자-UU
 | NEXT_PUBLIC_SUPABASE_URL | 브라우저·서버 | 프로젝트 HTTPS URL |
 | NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY | 브라우저·서버 | 공개 가능한 API 식별 키, RLS 필수 |
 | COCKPIT_OWNER_ID | 서버 전용 | 허용한 실제 사용자 UUID |
+| COCKPIT_WEB_ORIGIN | 서버 전용 | 실제 접속할 HTTPS 배포 origin, 경로·끝 슬래시 제외 |
 
 NEXT_PUBLIC 값은 빌드에 들어가므로 변경 후 재배포합니다. DB 허용 목록의 UUID와 서버 UUID가 같아야 합니다. .env.local 파일은 커밋하지 않습니다.
 

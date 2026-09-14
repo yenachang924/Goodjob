@@ -1,61 +1,40 @@
-import { validData, type Data } from '@cockpit/shared';
+import { validWorkspace, type WorkspaceData } from '@cockpit/shared/workspace';
 import { MAX_WORKSPACE_BYTES } from '@cockpit/shared/backup';
-export type Snapshot = { data: Data; revision: number };
+import { boundedText, privateHeaders as headers } from './http.ts';
+export type Snapshot = { data: WorkspaceData; revision: number };
 export type Repository = {
   read: (userId: string) => Promise<Snapshot>;
   save: (
     userId: string,
-    data: Data,
+    data: WorkspaceData,
     revision: number,
   ) => Promise<number | null>;
   consumeRateLimit: (userId: string) => Promise<boolean>;
 };
 type Dependencies = {
   ownerId: string;
+  webOrigin?: string;
   authenticate: (token: string) => Promise<string | null>;
   repository: Repository;
 };
-const headers = {
-  'Cache-Control': 'private, no-store',
-  'X-Content-Type-Options': 'nosniff',
-};
 const failure = (status: number, error: string) =>
   Response.json({ error }, { status, headers });
-async function readBody(request: Request) {
-  const reader = request.body?.getReader();
-  if (!reader) return '';
-  const decoder = new TextDecoder();
-  let bytes = 0;
-  let result = '';
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      bytes += value.byteLength;
-      if (bytes > MAX_WORKSPACE_BYTES) {
-        await reader.cancel();
-        return null;
-      }
-      result += decoder.decode(value, { stream: true });
-    }
-    return result + decoder.decode();
-  } finally {
-    reader.releaseLock();
-  }
-}
-async function parseWrite(request: Request): Promise<Snapshot | Response> {
+async function parseWrite(
+  request: Request,
+  webOrigin?: string,
+): Promise<Snapshot | Response> {
   const origin = request.headers.get('origin');
-  if (origin && origin !== new URL(request.url).origin)
+  if (origin && origin !== (webOrigin ?? new URL(request.url).origin))
     return failure(403, '허용되지 않은 요청입니다.');
   if (!request.headers.get('content-type')?.startsWith('application/json'))
     return failure(415, 'JSON 요청이 필요합니다.');
-  const raw = await readBody(request);
+  const raw = await boundedText(request.body, MAX_WORKSPACE_BYTES);
   if (raw === null) return failure(413, '저장 용량을 초과했습니다.');
   try {
     const body = JSON.parse(raw);
     if (
       !body ||
-      !validData(body.data) ||
+      !validWorkspace(body.data) ||
       !Number.isSafeInteger(body.revision) ||
       body.revision < 0 ||
       body.revision > 2147483646
@@ -68,6 +47,7 @@ async function parseWrite(request: Request): Promise<Snapshot | Response> {
 }
 export function createWorkspaceHandlers({
   ownerId,
+  webOrigin,
   authenticate,
   repository,
 }: Dependencies) {
@@ -86,11 +66,13 @@ export function createWorkspaceHandlers({
   }
   async function handle(request: Request, write: boolean) {
     try {
+      if (webOrigin !== undefined && !validWebOrigin(webOrigin))
+        return failure(503, '허용할 웹 주소 설정을 확인하세요.');
       const userId = await authorize(request);
       if (userId instanceof Response) return userId;
       if (!write)
         return Response.json(await repository.read(userId), { headers });
-      const body = await parseWrite(request);
+      const body = await parseWrite(request, webOrigin);
       if (body instanceof Response) return body;
       const revision = await repository.save(userId, body.data, body.revision);
       return revision === null
@@ -107,4 +89,20 @@ export function createWorkspaceHandlers({
     GET: (request: Request) => handle(request, false),
     PUT: (request: Request) => handle(request, true),
   };
+}
+
+function validWebOrigin(value: string) {
+  try {
+    const url = new URL(value);
+    return (
+      url.origin === value &&
+      !url.username &&
+      !url.password &&
+      (url.protocol === 'https:' ||
+        (url.protocol === 'http:' &&
+          ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)))
+    );
+  } catch {
+    return false;
+  }
 }

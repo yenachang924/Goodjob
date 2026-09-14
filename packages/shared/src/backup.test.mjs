@@ -2,6 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseBackup } from './backup.ts';
 import { initialData, validData } from './planner.ts';
+test('backup round trips version 2 without changing or inventing history', () => {
+  const data = {
+    version: 2,
+    projects: [],
+    tasks: [],
+    milestones: [],
+    sessions: [],
+    days: {},
+    legacyActive: [],
+  };
+  assert.deepEqual(parseBackup(JSON.stringify({ data, revision: 9 }), 0), data);
+  assert.throws(() => parseBackup(JSON.stringify({ ...data, version: 3 }), 0));
+});
 test('backup preserves original data without merging or rewriting', () => {
   assert.deepEqual(
     parseBackup(JSON.stringify({ data: initialData, revision: 12 }), 0),

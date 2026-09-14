@@ -4,6 +4,7 @@
 
 - [왜 이 스택인가](docs/architecture.md)
 - [Vercel 배포와 데이터 이전](docs/deployment.md)
+- [Kotlin 백엔드 학습실 실행·선택 이유·학습 순서](docs/backend-learning.md)
 
 ## 로컬 실행
 
@@ -18,6 +19,8 @@ npm run dev
 
 ## 검사
 
+`/learn/tasks`에 독립적인 Kotlin/Spring Boot 학습 화면이 추가되어 있습니다. 기존 관제판의 Supabase 데이터와 자동으로 합쳐지지 않습니다. API는 `apps/api`에서 별도로 실행합니다. 자세한 환경변수와 보안 경계는 위 학습 안내를 참고하세요.
+
 ```sh
 npm test
 npm run typecheck
@@ -28,11 +31,12 @@ npm audit --omit=dev
 
 DB 테스트는 PGlite(Postgres)를 로컬에서 실행하므로 운영 DB를 변경하지 않습니다. Supabase Auth/RLS의 실제 호스팅 동작 및 Vercel 로그인·저장 E2E는 별도로 계정 설정 후 검증해야 합니다.
 
-2026-09-10 로컬 검사: 19개 테스트 통과. 실제 Supabase SDK와 로컬 HTTP 대역을 연결해 bearer 전달·인증 오류·저장 응답도 검사했습니다. 도메인/백업/API 정책/저장 어댑터의 실행된 파일은 각각 95% 이상 라인 커버리지지만, React 화면·서버 진입점을 포함한 전체 프로젝트 80% 또는 브라우저 E2E 달성을 의미하지 않습니다. 계정 연결 후 실제 로그인·가져오기·저장 흐름 검증이 남아 있습니다.
+기존 Supabase SDK 검사는 로컬 HTTP 대역으로 bearer 전달·인증 오류·저장 응답을 확인합니다. Kotlin 학습실의 검사 범위와 결과는 [학습 안내](docs/backend-learning.md)에 구분해 기록합니다. 모듈 커버리지는 React 화면·서버 진입점을 포함한 전체 프로젝트 커버리지를 뜻하지 않습니다. 실제 Supabase 계정의 로그인·가져오기·저장 흐름 검증은 별도로 남아 있습니다.
 
 ## 책임
 
 - apps/web: 화면과 API 진입점; Vercel Root Directory
+- apps/api: 별도 실행하는 Kotlin/Spring Boot + Exposed + MySQL 학습 API; npm 빌드에 포함되지 않음
 - packages/backend: 인증·저장·요청 제한; 별도 서버가 아님
 - packages/shared: 서버/브라우저 공통 순수 로직
 - docs/legacy: 기존 Sites 구성과 D1 스키마의 기록, 새 빌드에서 실행되지 않음

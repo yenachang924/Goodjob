@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = new URL('../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), 'utf8');
-test('one application and two internal workspaces', () => {
+test('one web npm application and two internal workspaces', () => {
   const pkg = JSON.parse(read('package.json'));
   assert.deepEqual(pkg.workspaces, ['apps/*', 'packages/*']);
   assert.ok(existsSync(new URL('apps/web/package.json', root)));

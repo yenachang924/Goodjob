@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import { initialData, validData } from '@cockpit/shared';
+import { initialData } from '@cockpit/shared';
+import { validWorkspace } from '@cockpit/shared/workspace';
 import type { Repository } from './handlers.ts';
 export type BackendConfig = {
   url: string;
@@ -28,7 +29,7 @@ export function createDependencies(
       if (error) throw new Error('Workspace read failed');
       if (!data) return { data: structuredClone(initialData), revision: 0 };
       if (
-        !validData(data.data) ||
+        !validWorkspace(data.data) ||
         !Number.isSafeInteger(data.revision) ||
         data.revision < 1
       )

@@ -7,10 +7,12 @@ function fixture({
   user = 'owner',
   unavailable = false,
   limited = false,
+  webOrigin,
 } = {}) {
   let snapshot = { data: initialData, revision: 0 };
   const dependencies = {
     ownerId: 'owner',
+    webOrigin,
     authenticate: async () => user,
     repository: {
       read: async () => {
@@ -55,6 +57,58 @@ test('unauthenticated and nonowner cannot read', async () => {
       )
     ).status,
     403,
+  );
+});
+
+test('version 2 workspace persists atomically and rejects stale writes', async () => {
+  const data = {
+    version: 2,
+    projects: [
+      {
+        id: 'p1',
+        name: '논리회로',
+        description: '',
+        link: '',
+        archived: false,
+      },
+    ],
+    tasks: [],
+    milestones: [],
+    sessions: [],
+    days: {},
+    legacyActive: [],
+  };
+  const app = fixture();
+  assert.equal((await app.PUT(request({ data, revision: 0 }))).status, 200);
+  assert.equal(
+    (await app.PUT(request({ data: { ...data, version: 3 }, revision: 1 })))
+      .status,
+    400,
+  );
+  assert.equal((await app.PUT(request({ data, revision: 0 }))).status, 409);
+  const result = await app.GET(
+    new Request(url, { headers: { Authorization: 'Bearer valid' } }),
+  );
+  assert.deepEqual(await result.json(), { data, revision: 1 });
+});
+
+test('configured browser Origin is exact and does not trust forwarded host', async () => {
+  const app = fixture({ webOrigin: 'http://127.0.0.1:5321' });
+  const r = request({ data: initialData, revision: 0 });
+  r.headers.set('Origin', 'http://127.0.0.1:5321');
+  r.headers.set('x-forwarded-host', 'evil.example');
+  assert.equal((await app.PUT(r)).status, 200);
+  assert.equal(
+    (await app.PUT(request({ data: initialData, revision: 1 }))).status,
+    403,
+  );
+  assert.equal(
+    (
+      await fixture({ webOrigin: 'bad' }).PUT(
+        request({ data: initialData, revision: 0 }),
+      )
+    ).status,
+    503,
   );
 });
 test('save and reload preserve workspace; stale write rejected', async () => {

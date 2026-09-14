@@ -120,6 +120,22 @@ function validDay(v: unknown): boolean {
       slots.some((s) => s.taskId === (v.active as { taskId: string }).taskId))
   );
 }
+export function validTask(v: unknown): v is Task {
+  try {
+    return (
+      record(v) &&
+      text(v.id, 100) &&
+      text(v.title, 300) &&
+      text(v.project, 100) &&
+      integer(v.minutes, 1, 1440) &&
+      integer(v.priority, 1, 3) &&
+      typeof v.done === 'boolean' &&
+      (v.due === '' || date(v.due))
+    );
+  } catch {
+    return false;
+  }
+}
 export function validData(v: unknown): v is Data {
   try {
     if (
@@ -134,18 +150,7 @@ export function validData(v: unknown): v is Data {
     if (
       !Array.isArray(v.tasks) ||
       v.tasks.length > 2000 ||
-      !v.tasks.every(
-        (t) =>
-          record(t) &&
-          text(t.id, 100) &&
-          text(t.title, 300) &&
-          typeof t.project === 'string' &&
-          projects.includes(t.project) &&
-          integer(t.minutes, 1, 1440) &&
-          integer(t.priority, 1, 3) &&
-          typeof t.done === 'boolean' &&
-          (t.due === '' || date(t.due)),
-      )
+      !v.tasks.every((t) => validTask(t) && projects.includes(t.project))
     )
       return false;
     if (new Set(v.tasks.map((t) => t.id)).size !== v.tasks.length) return false;

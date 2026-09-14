@@ -15,12 +15,13 @@ export async function workspaceEndpoint(request: Request) {
   if (!validBackendConfig({ url, publishableKey, ownerId }))
     return unavailable();
   try {
-    const handlers = createWorkspaceHandlers(
-      createDependencies(
+    const handlers = createWorkspaceHandlers({
+      ...createDependencies(
         { url, publishableKey, ownerId },
         request.headers.get('authorization') || '',
       ),
-    );
+      webOrigin: process.env.COCKPIT_WEB_ORIGIN,
+    });
     return request.method === 'GET'
       ? await handlers.GET(request)
       : await handlers.PUT(request);

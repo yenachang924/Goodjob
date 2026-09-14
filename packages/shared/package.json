@@ -4,6 +4,8 @@
   "type": "module",
   "exports": {
     ".": "./src/planner.ts",
-    "./backup": "./src/backup.ts"
+    "./backup": "./src/backup.ts",
+    "./control": "./src/control/index.ts",
+    "./workspace": "./src/workspace.ts"
   }
 }

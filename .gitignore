@@ -43,3 +43,9 @@ next-env.d.ts
 /.wrangler/
 /outputs/
 /work/
+**/target/
+**/.gradle/
+**/data/
+.superpowers/
+/test-results/
+/playwright-report/
