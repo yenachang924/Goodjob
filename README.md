@@ -4,6 +4,7 @@
 
 - [왜 이 스택인가](docs/architecture.md)
 - [Vercel 배포와 데이터 이전](docs/deployment.md)
+- [비밀번호 재설정과 인증 주소 설정](docs/password-recovery.md)
 - [Kotlin 백엔드 학습실 실행·선택 이유·학습 순서](docs/backend-learning.md)
 
 ## 로컬 실행
