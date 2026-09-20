@@ -55,7 +55,7 @@ test('completed recovery survives logout failure and refresh without re-saving p
 });
 
 test('loads local Pretendard for text and form controls', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/cloud');
   await expect(
     page.getByRole('button', { name: '로그인', exact: true }),
   ).toBeVisible();
@@ -85,7 +85,7 @@ test('recovery rate limit remains actionable without claiming email was sent', a
       },
     });
   });
-  await page.goto('/');
+  await page.goto('/cloud');
   await page.getByRole('button', { name: '비밀번호를 잊으셨나요?' }).click();
   await page
     .getByLabel('이메일', { exact: true })
@@ -101,7 +101,7 @@ test('recovery rate limit remains actionable without claiming email was sent', a
 });
 
 test('ordinary password login still opens the workspace', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/cloud');
   await page
     .getByLabel('이메일', { exact: true })
     .fill('test-owner@example.test');
@@ -149,7 +149,7 @@ test('requests recovery using the current origin and hides account existence', a
     requestedEmail = route.request().postDataJSON().email;
     await route.fulfill({ status: 200, json: {} });
   });
-  await page.goto('/');
+  await page.goto('/cloud');
   await page.getByRole('button', { name: '비밀번호를 잊으셨나요?' }).click();
   await page
     .getByLabel('이메일', { exact: true })

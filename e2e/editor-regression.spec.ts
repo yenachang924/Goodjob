@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 async function openProject(page: Page, name: string) {
-  await page.goto('/');
+  await page.goto('/cloud');
   await page.getByLabel('이메일').fill('test-owner@example.test');
   await page.getByLabel('비밀번호').fill('fixture-password');
   const authenticated = page.waitForResponse((response) => response.url().includes('/auth/v1/token'));

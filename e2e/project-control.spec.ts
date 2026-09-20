@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 async function login(page: Page) {
-  await page.goto('/');
+  await page.goto('/cloud');
   await page.getByLabel('이메일').fill('test-owner@example.test');
   await page.getByLabel('비밀번호').fill('fixture-password');
   await page.getByRole('button', { name: '로그인' }).click();

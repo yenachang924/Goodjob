@@ -18,6 +18,7 @@
     "test:coverage": "node --experimental-strip-types --experimental-test-coverage --test tests/*.test.mjs packages/shared/src/*.test.mjs packages/backend/tests/*.test.mjs",
     "test:e2e": "playwright test e2e/learning.spec.ts",
     "test:e2e:auth": "playwright test --config playwright.auth.config.ts",
+    "test:e2e:local": "playwright test --config playwright.local.config.ts",
     "test:e2e:live": "playwright test --config playwright.live.config.ts",
     "test:e2e:control": "playwright test --config playwright.control.config.ts --project=desktop && playwright test --config playwright.control.config.ts --project=mobile",
     "format": "oxfmt apps packages tests"

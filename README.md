@@ -3,6 +3,7 @@
 개인 프로젝트·학습 할 일, 가용시간, 추천안과 확정 계획을 관리하는 작은 모노레포.
 
 - [왜 이 스택인가](docs/architecture.md)
+- [로그인 없는 로컬 모드와 백업](docs/local-mode.md)
 - [Vercel 배포와 데이터 이전](docs/deployment.md)
 - [비밀번호 재설정과 인증 주소 설정](docs/password-recovery.md)
 - [Kotlin 백엔드 학습실 실행·선택 이유·학습 순서](docs/backend-learning.md)
@@ -16,7 +17,9 @@ npm ci
 npm run dev
 ```
 
-`apps/web/.env.example`을 참고해 `apps/web/.env.local`에 Supabase URL, publishable key, 소유자 UUID를 설정하세요. 설정이 없으면 안내 화면/API 503이 정상이며 임시 데이터로 우회하지 않습니다.
+기본 화면은 로그인 없이 각 브라우저에 저장하는 로컬 모드입니다. Supabase 설정이 필요 없습니다. 브라우저 데이터를 삭제하면 기록이 사라질 수 있으므로 JSON 내보내기로 백업하세요. 같은 배포 주소를 여러 사람이 사용해도 서로 다른 브라우저 프로필의 데이터는 공유되지 않습니다.
+
+선택 사항인 `/cloud`에서만 Supabase 설정이 필요합니다. `apps/web/.env.example`을 참고해 `apps/web/.env.local`에 URL, publishable key, 소유자 UUID를 설정하세요. 서버 API의 인증·권한 보호는 그대로 유지됩니다. 로컬과 클라우드는 자동 동기화되지 않습니다.
 
 ## 검사
 

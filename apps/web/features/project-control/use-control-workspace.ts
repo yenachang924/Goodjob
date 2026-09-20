@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { workspaceRequest } from '@/features/auth/client';
+import { localWorkspaceRequest } from './local-storage';
 import { validData, type Data } from '@cockpit/shared';
 import {
   migrateWorkspace,
@@ -17,7 +18,11 @@ function message(error: unknown) {
   return error instanceof Error ? error.message : '저장하지 못했습니다.';
 }
 
-export function useControlWorkspace() {
+export type StorageMode = 'local' | 'cloud';
+
+export function useControlWorkspace(mode: StorageMode = 'cloud') {
+  const request = mode === 'local' ? localWorkspaceRequest : workspaceRequest;
+  const saving = useRef(false);
   const [data, setData] = useState<WorkspaceData | null>(null);
   const [revision, setRevision] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -30,7 +35,7 @@ export function useControlWorkspace() {
     setLoading(true);
     setError('');
     try {
-      const response = await workspaceRequest();
+      const response = await request();
       const body = (await response.json()) as ResponseBody;
       if (
         !response.ok ||
@@ -49,7 +54,7 @@ export function useControlWorkspace() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [request]);
 
   useEffect(() => {
     void load();
@@ -57,7 +62,7 @@ export function useControlWorkspace() {
 
   const save = useCallback(
     async (next: ControlData) => {
-      if (busy) return false;
+      if (saving.current) return false;
       if (!validControlData(next)) {
         setError('입력값과 프로젝트 연결 관계를 확인하세요.');
         return false;
@@ -69,10 +74,12 @@ export function useControlWorkspace() {
         );
         return false;
       }
+      saving.current = true;
       setBusy(true);
       setError('');
+      setNotice('');
       try {
-        const response = await workspaceRequest({
+        const response = await request({
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body,
@@ -89,17 +96,20 @@ export function useControlWorkspace() {
         }
         setData(next);
         setRevision(result.revision as number);
-        setNotice('클라우드에 저장됨');
+        setNotice(
+          mode === 'local' ? '이 브라우저에 저장됨' : '클라우드에 저장됨',
+        );
         setConflict(false);
         return true;
       } catch (caught) {
         setError(message(caught));
         return false;
       } finally {
+        saving.current = false;
         setBusy(false);
       }
     },
-    [busy, revision],
+    [request, mode, revision],
   );
 
   async function upgrade() {
