@@ -1,8 +1,11 @@
 import type { ControlData, Milestone, Project } from './types.ts';
 import { assertControlData, milestoneHasIncompleteWork } from './validation.ts';
+import { INBOX_PROJECT_ID } from './capture.ts';
 
 export function saveProject(data: ControlData, input: Project): ControlData {
   assertControlData(data);
+  if (input.id === INBOX_PROJECT_ID && input.archived)
+    throw new Error('미분류 보관함은 보관할 수 없습니다.');
   if (
     input.archived &&
     data.sessions.some(

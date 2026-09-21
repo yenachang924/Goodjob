@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   leafTasks,
+  INBOX_PROJECT_ID,
+  moveControlTask,
   saveControlTask,
   saveMilestone,
   saveProject,
@@ -20,10 +22,12 @@ import {
   type ControlData,
   type ControlTask,
   type Milestone,
+  type Project,
+  type ProjectArea,
 } from '@cockpit/shared/control';
 import { MilestoneEditor } from './milestone-editor';
 import { TaskEditor } from './task-editor';
-import { formatMinutes } from './format';
+import { QuickCapture } from './quick-capture';
 
 const labels: Record<ControlTask['status'], string> = {
   todo: '예정',
@@ -59,12 +63,28 @@ function TaskRow({
   return (
     <div className={`control-task ${child ? 'child' : ''}`}>
       <div className="task-main">
-        <span className={`status-dot ${status}`} />
+        <input
+          type="checkbox"
+          aria-label={`${task.title} 완료`}
+          checked={status === 'done'}
+          disabled={!leaf || busy || task.archived}
+          onChange={(event) =>
+            void apply(() =>
+              setTaskStatus(
+                data,
+                task.id,
+                event.target.checked ? 'done' : 'todo',
+                Date.now(),
+              ),
+            )
+          }
+        />
         <div>
           <strong>{task.title}</strong>
           <small>
-            {formatMinutes(minutes)} · 중요도 {task.priority}
-            {task.due ? ` · ${task.due}` : ''}
+            {minutes ? `${minutes}분` : '예상 시간 미정'}
+            {task.scheduledFor ? ` · 예정 ${task.scheduledFor}` : ''}
+            {task.due ? ` · 마감 ${task.due}` : ''}
           </small>
           {status === 'blocked' && task.blockedReason && (
             <p className="blocked-reason">{task.blockedReason}</p>
@@ -72,6 +92,30 @@ function TaskRow({
         </div>
       </div>
       <div className="task-controls">
+        {!child && task.projectId === INBOX_PROJECT_ID && !task.archived && (
+          <select
+            aria-label={`${task.title} 활동으로 이동`}
+            value=""
+            disabled={busy}
+            onChange={(event) => {
+              const destination = event.target.value;
+              if (destination)
+                void apply(() => moveControlTask(data, task.id, destination));
+            }}
+          >
+            <option value="">활동 지정</option>
+            {data.projects
+              .filter(
+                (project) =>
+                  !project.archived && project.id !== INBOX_PROJECT_ID,
+              )
+              .map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+          </select>
+        )}
         <span className={`status-label ${status}`}>{labels[status]}</span>
         {leaf && status !== 'done' && !task.archived && (
           <Button
@@ -110,7 +154,12 @@ function TaskRow({
             </option>
           ))}
         </select>
-        <Button size="sm" variant="ghost" disabled={busy} onClick={() => onEdit(task)}>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          onClick={() => onEdit(task)}
+        >
           수정
         </Button>
         <Button
@@ -152,7 +201,7 @@ export function ProjectDetail({
     Milestone | 'new' | null
   >(null);
   const [editingProject, setEditingProject] = useState(false);
-  const [projectDraft, setProjectDraft] = useState(
+  const [projectDraft, setProjectDraft] = useState<Project>(
     () =>
       project ?? {
         id: projectId,
@@ -163,7 +212,8 @@ export function ProjectDetail({
       },
   );
   const [showArchived, setShowArchived] = useState(false);
-  const editorOpen = editingProject || taskEditor !== null || milestoneEditor !== null;
+  const editorOpen =
+    editingProject || taskEditor !== null || milestoneEditor !== null;
   if (!project) return null;
   const milestones = data.milestones.filter(
     (item) => item.projectId === projectId,
@@ -202,7 +252,7 @@ export function ProjectDetail({
     <section>
       <button className="back-button" onClick={onBack}>
         <ArrowLeft />
-        전체 프로젝트
+        내 활동
       </button>
       <div className="project-detail-head">
         <div>
@@ -216,12 +266,19 @@ export function ProjectDetail({
           )}
         </div>
         <div className="header-actions">
-          <Button variant="ghost" disabled={busy || editorOpen} onClick={() => { setProjectDraft(project); setEditingProject(true); }}>
+          <Button
+            variant="ghost"
+            disabled={busy || editorOpen}
+            onClick={() => {
+              setProjectDraft(project);
+              setEditingProject(true);
+            }}
+          >
             프로젝트 수정
           </Button>
           <Button
             variant="ghost"
-            disabled={busy || editorOpen}
+            disabled={busy || editorOpen || project.id === INBOX_PROJECT_ID}
             onClick={() =>
               void apply(() =>
                 saveProject(data, { ...project, archived: !project.archived }),
@@ -247,6 +304,17 @@ export function ProjectDetail({
           </Button>
         </div>
       </div>
+      {!project.archived && (
+        <QuickCapture
+          key={projectId}
+          inputId="activity-quick-capture"
+          data={data}
+          projectId={projectId}
+          busy={busy || editorOpen}
+          onSave={onSave}
+          onError={onError}
+        />
+      )}
       {editingProject && (
         <form
           className="control-form project-create"
@@ -265,6 +333,26 @@ export function ProjectDetail({
                 setProjectDraft({ ...projectDraft, name: event.target.value })
               }
             />
+          </label>
+          <label>
+            영역
+            <select
+              value={projectDraft.area ?? ''}
+              disabled={projectId === INBOX_PROJECT_ID}
+              onChange={(event) =>
+                setProjectDraft({
+                  ...projectDraft,
+                  area: event.target.value
+                    ? (event.target.value as ProjectArea)
+                    : undefined,
+                })
+              }
+            >
+              <option value="">미분류</option>
+              <option value="class">수업</option>
+              <option value="project">프로젝트</option>
+              <option value="study">개인공부</option>
+            </select>
           </label>
           <label>
             프로젝트 설명
@@ -301,7 +389,11 @@ export function ProjectDetail({
         </form>
       )}
       {(taskEditor || milestoneEditor) && (
-        <fieldset className="editor-drawer" disabled={busy} style={{ border: 0, padding: 0, minWidth: 0 }}>
+        <fieldset
+          className="editor-drawer"
+          disabled={busy}
+          style={{ border: 0, padding: 0, minWidth: 0 }}
+        >
           {taskEditor && (
             <TaskEditor
               key={taskEditor === 'new' ? 'new-task' : taskEditor.id}
@@ -310,7 +402,9 @@ export function ProjectDetail({
               parents={parents}
               initial={taskEditor === 'new' ? undefined : taskEditor}
               busy={busy}
-              onCancel={() => { if (!busy) setTaskEditor(null); }}
+              onCancel={() => {
+                if (!busy) setTaskEditor(null);
+              }}
               onSave={(task) =>
                 apply(() => saveControlTask(data, task, Date.now()))
               }
@@ -318,67 +412,76 @@ export function ProjectDetail({
           )}
           {milestoneEditor && (
             <MilestoneEditor
-              key={milestoneEditor === 'new' ? 'new-milestone' : milestoneEditor.id}
+              key={
+                milestoneEditor === 'new' ? 'new-milestone' : milestoneEditor.id
+              }
               projectId={projectId}
               initial={milestoneEditor === 'new' ? undefined : milestoneEditor}
               busy={busy}
-              onCancel={() => { if (!busy) setMilestoneEditor(null); }}
+              onCancel={() => {
+                if (!busy) setMilestoneEditor(null);
+              }}
               onSave={(item) => apply(() => saveMilestone(data, item))}
             />
           )}
         </fieldset>
       )}
-      <div className="milestone-strip">
-        {milestones.length === 0 ? (
-          <p>마일스톤은 선택 사항입니다. 작업부터 바로 등록해도 괜찮아요.</p>
-        ) : (
-          milestones.map((item) => {
-            const linked = leafTasks(data, projectId).filter(
-              (task) => task.milestoneId === item.id,
-            );
-            const done = linked.filter(
-              (task) => taskStatus(data, task.id) === 'done',
-            ).length;
-            const canAchieve = linked.length === 0 || done === linked.length;
-            return (
-              <article key={item.id}>
-                <span>
-                  {item.achieved ? '달성 확인' : item.due || '목표일 없음'}
-                </span>
-                <strong>{item.title}</strong>
-                <small>
-                  {done}/{linked.length} 실행 작업 완료
-                </small>
-                <div className="header-actions">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={busy || editorOpen}
-                    onClick={() => setMilestoneEditor(item)}
-                  >
-                    수정
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={busy || editorOpen || (!canAchieve && !item.achieved)}
-                    onClick={() =>
-                      void apply(() =>
-                        saveMilestone(data, {
-                          ...item,
-                          achieved: !item.achieved,
-                        }),
-                      )
-                    }
-                  >
-                    {item.achieved ? '다시 진행' : '달성 확인'}
-                  </Button>
-                </div>
-              </article>
-            );
-          })
-        )}
-      </div>
+      <details className="project-secondary">
+        <summary>마일스톤 · {milestones.length}개</summary>
+        <div className="milestone-strip">
+          {milestones.length === 0 ? (
+            <p>마일스톤은 선택 사항입니다. 작업부터 바로 등록해도 괜찮아요.</p>
+          ) : (
+            milestones.map((item) => {
+              const linked = leafTasks(data, projectId).filter(
+                (task) => task.milestoneId === item.id,
+              );
+              const done = linked.filter(
+                (task) => taskStatus(data, task.id) === 'done',
+              ).length;
+              const canAchieve = linked.length === 0 || done === linked.length;
+              return (
+                <article key={item.id}>
+                  <span>
+                    {item.achieved ? '달성 확인' : item.due || '목표일 없음'}
+                  </span>
+                  <strong>{item.title}</strong>
+                  <small>
+                    {done}/{linked.length} 실행 작업 완료
+                  </small>
+                  <div className="header-actions">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy || editorOpen}
+                      onClick={() => setMilestoneEditor(item)}
+                    >
+                      수정
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={
+                        busy || editorOpen || (!canAchieve && !item.achieved)
+                      }
+                      onClick={() =>
+                        void apply(() =>
+                          saveMilestone(data, {
+                            ...item,
+                            achieved: !item.achieved,
+                          }),
+                        )
+                      }
+                    >
+                      {item.achieved ? '다시 진행' : '달성 확인'}
+                    </Button>
+                  </div>
+                </article>
+              );
+            })
+          )}
+        </div>
+      </details>
       <div className="task-list-heading">
         <h3>작업</h3>
         <label className="archive-filter">
@@ -431,6 +534,22 @@ export function ProjectDetail({
                           onEdit={setTaskEditor}
                         />
                       ))}
+                      {!parent.archived &&
+                        !project.archived &&
+                        taskStatus(data, parent.id) !== 'done' && (
+                          <div className="task-children-capture">
+                            <QuickCapture
+                              data={data}
+                              projectId={projectId}
+                              parentId={parent.id}
+                              busy={busy || editorOpen}
+                              onSave={onSave}
+                              onError={onError}
+                              label={`${parent.title} 하위 할 일 입력`}
+                              placeholder="하위 할 일을 입력하고 Enter"
+                            />
+                          </div>
+                        )}
                     </div>
                   );
                 })}

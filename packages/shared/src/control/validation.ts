@@ -34,6 +34,8 @@ const validProject = (v: unknown) =>
   text(v.description, 2000, true) &&
   text(v.link, 2000, true) &&
   (v.link === '' || safeLink(v.link)) &&
+  (v.area === undefined ||
+    ['class', 'project', 'study'].includes(v.area as string)) &&
   typeof v.archived === 'boolean';
 const safeLink = (link: unknown) => {
   if (typeof link !== 'string') return false;
@@ -58,9 +60,10 @@ const validTaskShape = (v: unknown, now: number): v is ControlTask =>
   (v.parentId === null || text(v.parentId, 100)) &&
   (v.milestoneId === null || text(v.milestoneId, 100)) &&
   text(v.title, 300) &&
-  integer(v.minutes, 1, 1440) &&
+  integer(v.minutes, 0, 1440) &&
   integer(v.priority, 1, 3) &&
   optionalDate(v.due) &&
+  (v.scheduledFor === undefined || optionalDate(v.scheduledFor)) &&
   ['todo', 'doing', 'blocked', 'done'].includes(v.status as string) &&
   text(v.blockedReason, 1000, true) &&
   nullableTimestamp(v.createdAt, now) &&

@@ -1,4 +1,5 @@
 export type {
+  ProjectArea,
   Project,
   Milestone,
   ControlTask,
@@ -25,3 +26,6 @@ export {
   sessionSeconds,
 } from './time.ts';
 export { projectSummary } from './summary.ts';
+export { INBOX_PROJECT_ID, quickCaptureTask } from './capture.ts';
+export type { QuickCaptureInput } from './capture.ts';
+export { moveControlTask } from './move-task.ts';

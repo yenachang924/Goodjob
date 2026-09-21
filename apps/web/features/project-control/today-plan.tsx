@@ -14,10 +14,13 @@ type PlanProps = {
   data: ControlData;
   busy: boolean;
   onSave(next: ControlData): Promise<boolean>;
+  selectedDate?: string;
+  onDateChange?(date: string): void;
 };
 
 export function TodayPlan(props: PlanProps) {
-  const [date, setDate] = useState(todayKey);
+  const [localDate, setDate] = useState(todayKey);
+  const date = props.selectedDate ?? localDate;
   return (
     <>
       <label>
@@ -30,11 +33,17 @@ export function TodayPlan(props: PlanProps) {
           disabled={props.busy}
           onChange={(event) => {
             const value = event.target.value;
-            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) setDate(value);
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+              if (props.onDateChange) props.onDateChange(value);
+              else setDate(value);
+            }
           }}
         />
       </label>
-      <p className="muted">날짜를 바꾸면 저장하지 않은 초안은 취소됩니다. 과거의 확정 계획도 직접 조정할 수 있어요.</p>
+      <p className="muted">
+        날짜를 바꾸면 저장하지 않은 초안은 취소됩니다. 과거의 확정 계획도 직접
+        조정할 수 있어요.
+      </p>
       <DayPlan key={date} {...props} date={date} />
     </>
   );
@@ -80,7 +89,7 @@ function DayPlan({
           (a.due || '9999').localeCompare(b.due || '9999'),
       )
       .reduce<Slot[]>((slots, task) => {
-        if (task.minutes > remaining) return slots;
+        if (task.minutes === 0 || task.minutes > remaining) return slots;
         remaining -= task.minutes;
         const project = data.projects.find(
           (item) => item.id === task.projectId,
@@ -154,6 +163,7 @@ function DayPlan({
             우선순위로 초안 만들기
           </Button>
           <p className="muted">
+            예상 시간이 미정인 작업은 시간을 입력한 뒤 배치할 수 있습니다.
             시계에 따라 줄어드는 시간이 아니라 직접 등록한 작업 예산입니다. 막힌
             작업과 보관된 프로젝트는 추천에서 제외합니다.
           </p>
@@ -206,6 +216,7 @@ function DayPlan({
                   key={task.id}
                   size="sm"
                   variant="outline"
+                  disabled={task.minutes === 0}
                   onClick={() => {
                     const project = data.projects.find(
                       (item) => item.id === task.projectId,

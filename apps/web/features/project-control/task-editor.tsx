@@ -30,7 +30,7 @@ export function TaskEditor({
         parentId: null,
         milestoneId: null,
         title: '',
-        minutes: 30,
+        minutes: 0,
         priority: 2,
         due: '',
         status: 'todo',
@@ -64,14 +64,14 @@ export function TaskEditor({
       </label>
       <div className="control-form-grid">
         <label>
-          예상 시간
+          예상 시간 (분 · 선택)
           <Input
             aria-label="예상 시간"
-            required
             type="number"
-            min={1}
+            min={0}
             max={1440}
-            value={draft.minutes}
+            placeholder="미정"
+            value={draft.minutes || ''}
             onChange={(e) =>
               setDraft({ ...draft, minutes: Number(e.target.value) })
             }
@@ -91,6 +91,14 @@ export function TaskEditor({
           />
         </label>
       </div>
+      <label>
+        작업 예정일
+        <Input
+          type="date"
+          value={draft.scheduledFor ?? ''}
+          onChange={(e) => setDraft({ ...draft, scheduledFor: e.target.value })}
+        />
+      </label>
       <label>
         마감일
         <Input

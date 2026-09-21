@@ -1,11 +1,13 @@
 import type { Slot } from '../planner.ts';
 
+export type ProjectArea = 'class' | 'project' | 'study';
 export type Project = {
   id: string;
   name: string;
   description: string;
   link: string;
   archived: boolean;
+  area?: ProjectArea;
 };
 export type Milestone = {
   id: string;
@@ -24,6 +26,7 @@ export type ControlTask = {
   priority: number;
   due: string;
   status: 'todo' | 'doing' | 'blocked' | 'done';
+  scheduledFor?: string;
   blockedReason: string;
   createdAt: number | null;
   completedAt: number | null;

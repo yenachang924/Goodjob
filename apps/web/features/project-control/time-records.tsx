@@ -8,13 +8,8 @@ import {
   type ControlData,
   type TimeSession,
 } from '@cockpit/shared/control';
-import {
-  formatMinutes,
-  formatSeconds,
-  fromLocalDateTime,
-  localDateTime,
-  todayKey,
-} from './format';
+import { fromLocalDateTime, localDateTime, todayKey } from './format';
+import { editedDurationRange, trackedDuration } from './time-duration';
 
 export function TimeRecords({
   data,
@@ -42,6 +37,11 @@ export function TimeRecords({
       : editing;
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
+  const [date, setDate] = useState(todayKey());
+  const [hours, setHours] = useState('');
+  const [minutes, setMinutes] = useState('');
+  const [durationChanged, setDurationChanged] = useState(false);
+  const [advanced, setAdvanced] = useState(false);
   const todayStart = new Date(`${todayKey()}T00:00:00+09:00`).getTime();
   const calendarDay = new Date(`${todayKey()}T00:00:00Z`);
   calendarDay.setUTCDate(
@@ -62,26 +62,38 @@ export function TimeRecords({
     }
     const task = data.tasks.find((item) => item.id === initial.taskId);
     if (!task) return;
-    const startedAt =
+    const originalStart =
       initial.id && start === localDateTime(initial.startedAt)
         ? initial.startedAt
         : fromLocalDateTime(start);
-    const endedAt =
+    const originalEnd =
       initial.id &&
       initial.endedAt !== null &&
       end === localDateTime(initial.endedAt)
         ? initial.endedAt
         : fromLocalDateTime(end);
-    const value = {
-      ...initial,
-      id: initial.id || crypto.randomUUID(),
-      projectId: task.projectId,
-      startedAt,
-      endedAt,
-      source: 'manual' as const,
-    };
     try {
-      if (await onSave(saveTimeSession(data, value, now))) setEditing(null);
+      const range = advanced
+        ? { startedAt: originalStart, endedAt: originalEnd }
+        : editedDurationRange(
+            initial.id && initial.endedAt !== null
+              ? { startedAt: initial.startedAt, endedAt: initial.endedAt }
+              : null,
+            date,
+            hours,
+            minutes,
+            durationChanged,
+            Date.now(),
+          );
+      const value = {
+        ...initial,
+        id: initial.id || crypto.randomUUID(),
+        projectId: task.projectId,
+        ...range,
+        source: 'manual' as const,
+      };
+      if (await onSave(saveTimeSession(data, value, Date.now())))
+        setEditing(null);
     } catch (error) {
       onError(
         error instanceof Error
@@ -95,6 +107,18 @@ export function TimeRecords({
       value === 'new' ? { startedAt: now - 1_800_000, endedAt: now } : value;
     setStart(localDateTime(record.startedAt));
     setEnd(localDateTime(record.endedAt ?? now));
+    setDate(
+      value === 'new'
+        ? todayKey()
+        : localDateTime(record.startedAt).slice(0, 10),
+    );
+    const totalMinutes = Math.floor(
+      ((record.endedAt ?? now) - record.startedAt) / 60_000,
+    );
+    setHours(value === 'new' ? '' : String(Math.floor(totalMinutes / 60)));
+    setMinutes(value === 'new' ? '' : String(totalMinutes % 60));
+    setDurationChanged(false);
+    setAdvanced(false);
     setEditing(value);
   }
   return (
@@ -111,13 +135,13 @@ export function TimeRecords({
         <article>
           <span>오늘 기록</span>
           <strong>
-            {formatSeconds(sessionSeconds(closedSessions, todayStart, now))}
+            {trackedDuration(sessionSeconds(closedSessions, todayStart, now))}
           </strong>
         </article>
         <article>
           <span>이번 주 기록</span>
           <strong>
-            {formatSeconds(
+            {trackedDuration(
               sessionSeconds(closedSessions, monday.getTime(), now),
             )}
           </strong>
@@ -129,7 +153,69 @@ export function TimeRecords({
       </div>
       {editing && initial && (
         <form className="control-form time-editor" onSubmit={submit}>
-          <h3>{editing === 'new' ? '수동 기록 추가' : '기록 수정'}</h3>
+          <h3>{initial.id ? '기록 수정' : '수동 기록 추가'}</h3>
+          {!advanced && (
+            <>
+              <label>
+                기록 날짜
+                <Input
+                  type="date"
+                  required
+                  max={todayKey()}
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </label>
+              <div className="duration-inputs">
+                <label>
+                  기록 시간
+                  <Input
+                    aria-label="기록 시간"
+                    type="number"
+                    min="0"
+                    max="24"
+                    step="1"
+                    placeholder="0"
+                    value={hours}
+                    onChange={(e) => {
+                      setHours(e.target.value);
+                      setDurationChanged(true);
+                    }}
+                  />
+                  시간
+                </label>
+                <label>
+                  기록 분
+                  <Input
+                    aria-label="기록 분"
+                    type="number"
+                    min="0"
+                    max="59"
+                    step="1"
+                    placeholder="0"
+                    value={minutes}
+                    onChange={(e) => {
+                      setMinutes(e.target.value);
+                      setDurationChanged(true);
+                    }}
+                  />
+                  분
+                </label>
+              </div>
+              <p className="form-hint">
+                오늘은 저장 시각, 지난 날짜는 그날 자정을 종료 시각으로
+                계산합니다. 기존 기록과 겹치면 시작·종료를 직접 지정하세요.
+              </p>
+            </>
+          )}
+          <label>
+            <input
+              type="checkbox"
+              checked={advanced}
+              onChange={(e) => setAdvanced(e.target.checked)}
+            />
+            시작·종료 직접 지정
+          </label>
           <label>
             작업
             <select
@@ -153,26 +239,30 @@ export function TimeRecords({
                 ))}
             </select>
           </label>
-          <label>
-            시작
-            <Input
-              type="datetime-local"
-              step="1"
-              required
-              value={start}
-              onChange={(e) => setStart(e.target.value)}
-            />
-          </label>
-          <label>
-            종료
-            <Input
-              type="datetime-local"
-              step="1"
-              required
-              value={end}
-              onChange={(e) => setEnd(e.target.value)}
-            />
-          </label>
+          {advanced && (
+            <>
+              <label>
+                시작
+                <Input
+                  type="datetime-local"
+                  step="1"
+                  required
+                  value={start}
+                  onChange={(e) => setStart(e.target.value)}
+                />
+              </label>
+              <label>
+                종료
+                <Input
+                  type="datetime-local"
+                  step="1"
+                  required
+                  value={end}
+                  onChange={(e) => setEnd(e.target.value)}
+                />
+              </label>
+            </>
+          )}
           <div className="form-actions">
             <Button
               type="button"
@@ -218,7 +308,7 @@ export function TimeRecords({
                   </div>
                   <span>
                     {session.endedAt
-                      ? formatSeconds(
+                      ? trackedDuration(
                           (session.endedAt - session.startedAt) / 1000,
                         )
                       : '진행 중'}
@@ -242,8 +332,8 @@ export function TimeRecords({
                 <div key={project.id}>
                   <span>{project.name}</span>
                   <strong>
-                    {formatMinutes(estimated)} 예상 · {formatSeconds(actual)}{' '}
-                    기록
+                    {estimated > 0 ? `${estimated}분` : '미정'} 예상 ·{' '}
+                    {trackedDuration(actual)} 기록
                   </strong>
                 </div>
               );

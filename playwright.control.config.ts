@@ -31,13 +31,13 @@ export default defineConfig({
     {
       command: 'node e2e/support/supabase-fixture.mjs',
       url: 'http://127.0.0.1:55439/health',
-      reuseExistingServer: false,
+      reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === '1',
       timeout: 60000,
     },
     {
       command: 'node node_modules/next/dist/bin/next dev apps/web --port 5321',
       url: 'http://127.0.0.1:5321',
-      reuseExistingServer: false,
+      reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === '1',
       timeout: 120000,
       env: {
         NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:55439',

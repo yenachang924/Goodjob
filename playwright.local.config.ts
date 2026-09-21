@@ -2,7 +2,11 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: 'local-workspace.spec.ts',
+  testMatch: [
+    'local-workspace.spec.ts',
+    'fast-capture.spec.ts',
+    'fast-time-calendar.spec.ts',
+  ],
   workers: 1,
   timeout: 30000,
   use: {
@@ -31,7 +35,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev --workspace @cockpit/web -- --port 5322',
     url: 'http://127.0.0.1:5322',
-    reuseExistingServer: false,
+    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === '1',
     timeout: 120000,
     env: {
       NEXT_PUBLIC_SUPABASE_URL: '',
